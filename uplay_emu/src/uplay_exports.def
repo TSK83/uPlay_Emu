@@ -1,0 +1,71 @@
+; ═══════════════════════════════════════════════════════════════════════
+;  ACU Custom Client — Uplay R1 API Export Definitions
+; ═══════════════════════════════════════════════════════════════════════
+;  This .def file exports all known Uplay R1 API functions by name,
+;  matching the original uplay_r1_loader64.dll export table.
+;  The game's import table resolves these by name at load time.
+; ═══════════════════════════════════════════════════════════════════════
+
+LIBRARY "uplay_r1_loader64"
+
+EXPORTS
+    UplayStart
+    UplayStop
+    UplayInitialize
+    UplayUpdate
+    UplayUserGetTicket
+    UplayUserGetTicketSize
+    UplayUserGetCdKeys
+    UplayUserGetCdKeyUtf8
+    UplayUserGetCredentials
+    UplayUserIsConnected
+    UplayUserIsOwned
+    UplayUserGetEmail
+    UplayUserGetName
+    UplayUserGetNameUtf8
+    UplayUserGetAccountId
+    UplayUserGetAccountIdUtf8
+    UplayUserGetGPUScoreConfidenceLevel
+    UplayUserGetGPUScore
+    UplayUserGetCPUScore
+    UplayUserClearGameSession
+    UplayUserSetGameSession
+    UplayUserGetConsumableItems
+    UplayUserConsumeItem
+    UplayOverlayShow
+    UplayOverlaySetShopUrl
+    UplayProductIsInstalled
+    UplayProductGetId
+    UplayProductGetIdUtf8
+    UplayInstallGetChunks
+    UplayInstallGetLanguage
+    UplayInstallIsDlcInstalled
+    UplayInstallGetLanguageUtf8
+    UplayFriendInviteToGame
+    UplayFriendGetList
+    UplayFriendIsFriend
+    UplayFriendGetNameUtf8
+    UplayPartyInit
+    UplayPartyGetId
+    UplayPartyGetMembers
+    UplayPartyGetInGameMembers
+    UplayPartyInviteToParty
+    UplayPartySetUserData
+    UplayPartySendGameInvitation
+    UplayPartyIsPartyLeader
+    UplayPartyIsInParty
+    UplayPartyMemberIsLeader
+    UplayPartyRespondToGameInvitation
+    UplayPartyShowGameInvitationDialog
+    UplayWinIsInstalled
+    UplayAchievement
+    UplayAchievementWrite
+    UplayEventRegisterHandler
+    UplayEventUnregisterHandler
+    UplaySaveGetPath
+    UplaySaveGetPathUtf8
+    UplaySaveOpen
+    UplaySaveClose
+    UplaySaveRead
+    UplaySaveWrite
+    UplaySaveRemove
