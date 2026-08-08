@@ -1,0 +1,345 @@
+openapi: "3.1.0"
+info:
+  title: ACU Custom Client — Master Server API
+  description: |
+    Custom multiplayer lobby server for Assassin's Creed Unity.
+    Provides RESTful endpoints for server browser, lobby management,
+    join codes, and heartbeat-based session pruning.
+  version: "1.0.0"
+  x-api-id: acu-master-server
+  x-audience: internal
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+paths:
+  /servers:
+    post:
+      summary: Register a new lobby
+      operationId: createServer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServerCreateRequest"
+      responses:
+        "201":
+          description: Lobby created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerCreateResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    get:
+      summary: List active lobbies (cursor-based pagination)
+      operationId: listServers
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Server ID to start after (omit for first page)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Maximum number of results to return
+      responses:
+        "200":
+          description: List of servers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerListResponse"
+
+  /servers/{id}:
+    get:
+      summary: Get specific server details
+      operationId: getServer
+      parameters:
+        - $ref: "#/components/parameters/ServerId"
+      responses:
+        "200":
+          description: Server details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerEntry"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    put:
+      summary: Update server data
+      operationId: updateServer
+      parameters:
+        - $ref: "#/components/parameters/ServerId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServerUpdateRequest"
+      responses:
+        "200":
+          description: Updated server entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerEntry"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      summary: Deregister a lobby
+      operationId: deleteServer
+      parameters:
+        - $ref: "#/components/parameters/ServerId"
+      responses:
+        "204":
+          description: Server removed successfully
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /servers/{id}/heartbeat:
+    put:
+      summary: Heartbeat ping
+      operationId: heartbeatServer
+      description: |
+        Resets the prune timer for this server. If a host misses a heartbeat
+        beyond 1.5x the configured heartbeat_interval, the server is
+        aggressively pruned from the registry.
+      parameters:
+        - $ref: "#/components/parameters/ServerId"
+      responses:
+        "200":
+          description: Heartbeat acknowledged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  server_id:
+                    type: string
+                    format: uuid
+                  timestamp:
+                    type: integer
+                    description: Unix timestamp in milliseconds
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /servers/join/{code}:
+    get:
+      summary: Lookup server by join code
+      operationId: getServerByJoinCode
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 6
+            pattern: "^[A-Z0-9]{6}$"
+          description: 6-character alphanumeric join code
+      responses:
+        "200":
+          description: Server found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerEntry"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /health:
+    get:
+      summary: Health check
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Server health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  uptime_seconds:
+                    type: integer
+                  server_count:
+                    type: integer
+                  version:
+                    type: string
+
+components:
+  parameters:
+    ServerId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Unique server identifier
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    ServerCreateRequest:
+      type: object
+      required:
+        - host_socket_id
+        - max_players
+        - heartbeat_interval
+        - game_id
+      properties:
+        host_socket_id:
+          type: string
+          description: Unique loopback socket identifier for the host
+        max_players:
+          type: integer
+          minimum: 1
+          maximum: 64
+          description: Maximum capacity of the session
+        heartbeat_interval:
+          type: integer
+          minimum: 5000
+          maximum: 300000
+          description: Heartbeat interval in milliseconds
+        game_id:
+          type: string
+          description: Game title/version identifier
+        host_name:
+          type: string
+          description: Display name for the server
+        current_players:
+          type: integer
+          default: 0
+        map_name:
+          type: string
+          default: Unknown
+        host_ip:
+          type: string
+          description: Host public IP (auto-detected if omitted)
+        host_port:
+          type: integer
+          default: 3074
+        is_dedicated:
+          type: boolean
+          default: false
+      additionalProperties: false
+
+    ServerCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        join_code:
+          type: string
+          minLength: 6
+          maxLength: 6
+        host_name:
+          type: string
+        max_players:
+          type: integer
+        current_players:
+          type: integer
+        game_id:
+          type: string
+        map_name:
+          type: string
+        created_at:
+          type: integer
+
+    ServerEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        join_code:
+          type: string
+        host_name:
+          type: string
+        max_players:
+          type: integer
+        current_players:
+          type: integer
+        game_id:
+          type: string
+        map_name:
+          type: string
+        host_ip:
+          type: string
+        host_port:
+          type: integer
+        ping_ms:
+          type: integer
+        is_dedicated:
+          type: boolean
+        created_at:
+          type: integer
+        last_heartbeat:
+          type: integer
+
+    ServerUpdateRequest:
+      type: object
+      properties:
+        current_players:
+          type: integer
+        map_name:
+          type: string
+        host_ip:
+          type: string
+        host_port:
+          type: integer
+        ping_ms:
+          type: integer
+      additionalProperties: false
+
+    ServerListResponse:
+      type: object
+      properties:
+        servers:
+          type: array
+          items:
+            $ref: "#/components/schemas/ServerEntry"
+        next_cursor:
+          type: string
+          nullable: true
+          description: Cursor for the next page (null if no more results)
+        total_count:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        field:
+          type: string
